@@ -41,10 +41,10 @@ export default class Room extends Model<RoomInstance, RoomAttributes> {
   @Column({
     type: DataType.JSON,
   })
-  speakers? = [];
+  speakers?: RoomInstance['speakers'];
 
   @Column({
     type: DataType.INTEGER,
   })
-  listenersCount = 0;
+  listenersCount?: number;
 }
