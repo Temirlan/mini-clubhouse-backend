@@ -103,6 +103,10 @@ io.on('connection', (socket) => {
     const speakers = getSpeakersFromRoom(rooms, roomId);
 
     io.in(`room/${roomId}`).emit('SERVER@ROOMS:JOIN', speakers);
+    io.emit('SERVER@ROOMS:HOME', {
+      speakers,
+      roomId: +roomId,
+    });
 
     Room.update({ speakers }, { where: { id: +roomId } });
   });
@@ -116,6 +120,10 @@ io.on('connection', (socket) => {
       delete rooms[socket.id];
 
       const speakers = getSpeakersFromRoom(rooms, roomId);
+      io.emit('SERVER@ROOMS:HOME', {
+        speakers,
+        roomId: +roomId,
+      });
       Room.update({ speakers }, { where: { id: +roomId } });
     }
   });
