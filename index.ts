@@ -1,9 +1,10 @@
 import express from 'express';
 import 'reflect-metadata';
 import { Container } from 'inversify';
-import { InversifyExpressServer, interfaces, TYPE } from 'inversify-express-utils';
+import { InversifyExpressServer } from 'inversify-express-utils';
 import * as swagger from 'swagger-express-ts';
 import cors from 'cors';
+import { Server } from 'socket.io';
 
 import { passport } from './core/passport';
 import { API_URL } from './utils/constants';
@@ -11,10 +12,13 @@ import { API_URL } from './utils/constants';
 import './db/models';
 import { AuthController } from './main/auth/auth.controller';
 import { UserController } from './main/user/user.controller';
-import { UserDTO, SpeakerDTO } from './main/user/user.model';
+import { SpeakerDTO, UserDTO } from './main/user/user.model';
 import { UserService } from './main/user/user.service';
 import { RoomController } from './main/room/room.controller';
 import { RoomDTO } from './main/room/room.model';
+import { UserInstance } from './db/models/user';
+import { getSpeakersFromRoom, SocketRoom } from './utils/getSpeakersFromRoom';
+import Room from './db/models/room';
 
 const container = new Container();
 
@@ -77,5 +81,42 @@ server.setErrorConfig((app) => {
 });
 
 const app = server.build();
-app.listen(3001);
+
+const instance = app.listen(3001);
+
 console.log('SERVER STARTED!');
+
+const io = new Server(instance, {
+  cors: {
+    origin: '*',
+  },
+});
+
+const rooms: SocketRoom = {};
+
+io.on('connection', (socket) => {
+  console.log('connection', socket.id);
+
+  socket.on('CLIENT@ROOMS:JOIN', ({ user, roomId }) => {
+    socket.join(`room/${roomId}`);
+    rooms[socket.id] = { user, roomId };
+    const speakers = getSpeakersFromRoom(rooms, roomId);
+
+    io.in(`room/${roomId}`).emit('SERVER@ROOMS:JOIN', speakers);
+
+    Room.update({ speakers }, { where: { id: +roomId } });
+  });
+
+  socket.on('disconnecting', () => {
+    if (rooms[socket.id]) {
+      const { user, roomId } = rooms[socket.id];
+
+      socket.broadcast.to(`room/${roomId}`).emit('SERVER@ROOMS:LEAVE', user);
+
+      delete rooms[socket.id];
+
+      const speakers = getSpeakersFromRoom(rooms, roomId);
+      Room.update({ speakers }, { where: { id: +roomId } });
+    }
+  });
+});
