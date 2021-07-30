@@ -111,6 +111,22 @@ io.on('connection', (socket) => {
     Room.update({ speakers }, { where: { id: +roomId } });
   });
 
+  socket.on('CLIENT@ROOMS:CALL', ({ targetUserId, callerUserId, roomId, signal }) => {
+    socket.broadcast.to(`room/${roomId}`).emit('SERVER@ROOMS:CALL', {
+      targetUserId,
+      callerUserId,
+      signal,
+    });
+  });
+
+  socket.on('CLIENT@ROOMS:ANSWER', ({ targetUserId, callerUserId, roomId, signal }) => {
+    socket.broadcast.to(`room/${roomId}`).emit('SERVER@ROOMS:ANSWER', {
+      targetUserId,
+      callerUserId,
+      signal,
+    });
+  });
+
   socket.on('disconnecting', () => {
     if (rooms[socket.id]) {
       const { user, roomId } = rooms[socket.id];
