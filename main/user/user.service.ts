@@ -46,17 +46,16 @@ export class UserService {
   }
 
   public async saveAvatar(path: string, userId: number) {
-    const data = await cloudinary.uploader.upload(path);
-    const avatarUrl = data.url;
+    await cloudinary.uploader.upload(path);
 
     await User.update(
       {
-        avatarUrl,
+        avatarUrl: path,
       },
       { where: { id: userId } },
     );
 
-    return avatarUrl;
+    return path;
   }
 
   public async activateCode(code: string, userId: number) {
