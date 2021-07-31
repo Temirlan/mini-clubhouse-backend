@@ -10,7 +10,8 @@ import { randomCode } from './user.utils';
 @injectable()
 export class UserService {
   public async sendSMS(phone: string, userId: number) {
-    const smsCode = String(randomCode());
+    // const smsCode = String(randomCode());
+    const smsCode = '1234'; // for test
     //TODO: add sending sms on phone through service sms.ru
     // await Axios.get(
     //   `https://sms.ru/sms/send?api_id=${process.env.SMS_API_KEY}&to=${phone}&msg=${smsCode}`,
