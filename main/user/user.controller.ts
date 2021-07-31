@@ -54,56 +54,6 @@ export class UserController implements interfaces.Controller {
   }
 
   @ApiOperationGet({
-    description: 'Get user by id',
-    path: '/{id}',
-    parameters: {
-      path: {
-        id: {
-          type: SwaggerDefinitionConstant.Response.Type.NUMBER,
-          required: true,
-        },
-      },
-    },
-    responses: {
-      200: {
-        model: 'User',
-      },
-    },
-  })
-  @httpGet('/:id', passport.authenticate('jwt', { session: false }), check('id').toInt())
-  public async show(
-    req: express.RequestUser<{
-      id: number; // || NAN
-    }>,
-    res: express.Response,
-  ) {
-    try {
-      const userId = req.params.id;
-
-      if (isNaN(userId)) {
-        return res.status(400).json({
-          msg: 'Invalid id user',
-        });
-      }
-
-      const user = await User.findByPk(userId);
-
-      if (!user) {
-        res.status(404).json({
-          msg: 'User is not found.',
-        });
-      }
-
-      res.json(user);
-    } catch (error) {
-      res.status(500).json({
-        msg: 'Error',
-        error,
-      });
-    }
-  }
-
-  @ApiOperationGet({
     description: 'Send code to phone',
     path: '/sms',
     parameters: {
@@ -191,6 +141,56 @@ export class UserController implements interfaces.Controller {
     } catch (error) {
       res.status(500).json({
         msg: 'Error when activating code',
+      });
+    }
+  }
+
+  @ApiOperationGet({
+    description: 'Get user by id',
+    path: '/{id}',
+    parameters: {
+      path: {
+        id: {
+          type: SwaggerDefinitionConstant.Response.Type.NUMBER,
+          required: true,
+        },
+      },
+    },
+    responses: {
+      200: {
+        model: 'User',
+      },
+    },
+  })
+  @httpGet('/:id', passport.authenticate('jwt', { session: false }), check('id').toInt())
+  public async show(
+    req: express.RequestUser<{
+      id: number; // || NAN
+    }>,
+    res: express.Response,
+  ) {
+    try {
+      const userId = req.params.id;
+
+      if (isNaN(userId)) {
+        return res.status(400).json({
+          msg: 'Invalid id user',
+        });
+      }
+
+      const user = await User.findByPk(userId);
+
+      if (!user) {
+        res.status(404).json({
+          msg: 'User is not found.',
+        });
+      }
+
+      res.json(user);
+    } catch (error) {
+      res.status(500).json({
+        msg: 'Error',
+        error,
       });
     }
   }
