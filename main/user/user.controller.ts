@@ -1,6 +1,12 @@
 import { interfaces, controller, httpGet, httpPost, httpPatch } from 'inversify-express-utils';
 import { validationResult, check } from 'express-validator';
-import { ApiOperationPost, ApiPath, ApiOperationGet, ApiOperationPatch } from 'swagger-express-ts';
+import {
+  ApiOperationPost,
+  ApiPath,
+  ApiOperationGet,
+  ApiOperationPatch,
+  SwaggerDefinitionConstant,
+} from 'swagger-express-ts';
 import * as express from 'express';
 import { inject } from 'inversify';
 
@@ -9,6 +15,7 @@ import avatarMulterCloudinary from '../../core/avatar-multer-cloudinary';
 import { passport } from '../../core/passport';
 import { UserService } from './user.service';
 import { UpdateUserDTO } from './user.model';
+import User from './../../db/models/user';
 
 @ApiPath({
   name: 'User',
@@ -44,6 +51,56 @@ export class UserController implements interfaces.Controller {
     const url = await this.userService.saveAvatar(req.file.path, userId);
 
     res.json(url);
+  }
+
+  @ApiOperationGet({
+    description: 'Get user by id',
+    path: '/{id}',
+    parameters: {
+      path: {
+        id: {
+          type: SwaggerDefinitionConstant.Response.Type.NUMBER,
+          required: true,
+        },
+      },
+    },
+    responses: {
+      200: {
+        model: 'User',
+      },
+    },
+  })
+  @httpGet('/:id', passport.authenticate('jwt', { session: false }), check('id').toInt())
+  public async show(
+    req: express.RequestUser<{
+      id: number; // || NAN
+    }>,
+    res: express.Response,
+  ) {
+    try {
+      const userId = req.params.id;
+
+      if (isNaN(userId)) {
+        return res.status(400).json({
+          msg: 'Invalid id user',
+        });
+      }
+
+      const user = await User.findByPk(userId);
+
+      if (!user) {
+        res.status(404).json({
+          msg: 'User is not found.',
+        });
+      }
+
+      res.json(user);
+    } catch (error) {
+      res.status(500).json({
+        msg: 'Error',
+        error,
+      });
+    }
   }
 
   @ApiOperationGet({
