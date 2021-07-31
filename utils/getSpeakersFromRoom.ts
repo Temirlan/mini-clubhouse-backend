@@ -1,3 +1,5 @@
+import { Socket } from 'socket.io';
+import { DefaultEventsMap } from 'socket.io/dist/typed-events';
 import { UserInstance } from '../db/models/user';
 
 export type SocketRoom = Record<
@@ -5,6 +7,7 @@ export type SocketRoom = Record<
   {
     roomId: string;
     user: Omit<UserInstance, 'token'>;
+    socket: Socket<DefaultEventsMap, DefaultEventsMap, DefaultEventsMap>;
   }
 >;
 

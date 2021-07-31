@@ -12,11 +12,10 @@ import { API_URL } from './utils/constants';
 import './db/models';
 import { AuthController } from './main/auth/auth.controller';
 import { UserController } from './main/user/user.controller';
-import { SpeakerDTO, UserDTO } from './main/user/user.model';
+import { UserDTO } from './main/user/user.model';
 import { UserService } from './main/user/user.service';
 import { RoomController } from './main/room/room.controller';
 import { RoomDTO } from './main/room/room.model';
-import { UserInstance } from './db/models/user';
 import { getSpeakersFromRoom, SocketRoom } from './utils/getSpeakersFromRoom';
 import Room from './db/models/room';
 
@@ -97,13 +96,15 @@ const rooms: SocketRoom = {};
 io.on('connection', (socket) => {
   console.log('connection', socket.id);
 
-  socket.on('CLIENT@ROOMS:JOIN', ({ user, roomId }) => {
+  socket.on('client join to room', ({ user, roomId }) => {
     socket.join(`room/${roomId}`);
-    rooms[socket.id] = { user, roomId };
-    const speakers = getSpeakersFromRoom(rooms, roomId);
+    rooms[socket.id] = { user, roomId, socket };
 
-    io.in(`room/${roomId}`).emit('SERVER@ROOMS:JOIN', speakers);
-    io.emit('SERVER@ROOMS:HOME', {
+    socket.to(`room/${roomId}`).emit('init connection receiver', socket.id);
+
+    const speakers = getSpeakersFromRoom(rooms, roomId);
+    io.in(`room/${roomId}`).emit('speakers', speakers);
+    io.emit('rooms', {
       speakers,
       roomId: +roomId,
     });
@@ -111,18 +112,15 @@ io.on('connection', (socket) => {
     Room.update({ speakers }, { where: { id: +roomId } });
   });
 
-  socket.on('CLIENT@ROOMS:CALL', ({ targetUserId, callerUserId, roomId, signal }) => {
-    socket.broadcast.to(`room/${roomId}`).emit('SERVER@ROOMS:CALL', {
-      targetUserId,
-      callerUserId,
-      signal,
-    });
+  socket.on('create initiator peer', (socketId) => {
+    rooms[socketId].socket.emit('init connection sender', socket.id);
   });
 
-  socket.on('CLIENT@ROOMS:ANSWER', ({ targetUserId, callerUserId, roomId, signal }) => {
-    socket.broadcast.to(`room/${roomId}`).emit('SERVER@ROOMS:ANSWER', {
-      targetUserId,
-      callerUserId,
+  socket.on('signal', ({ socketId, signal }) => {
+    if (!rooms[socketId]) return;
+
+    rooms[socketId].socket.emit('signal', {
+      socketId: socket.id,
       signal,
     });
   });
@@ -131,12 +129,15 @@ io.on('connection', (socket) => {
     if (rooms[socket.id]) {
       const { user, roomId } = rooms[socket.id];
 
-      socket.broadcast.to(`room/${roomId}`).emit('SERVER@ROOMS:LEAVE', user);
+      socket.broadcast.to(`room/${roomId}`).emit('user leave to room', {
+        socketId: socket.id,
+        userId: user.id,
+      });
 
       delete rooms[socket.id];
 
       const speakers = getSpeakersFromRoom(rooms, roomId);
-      io.emit('SERVER@ROOMS:HOME', {
+      io.emit('rooms', {
         speakers,
         roomId: +roomId,
       });
