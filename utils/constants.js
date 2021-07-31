@@ -10,7 +10,7 @@ switch (process.env.NODE_ENV) {
     path = resolve(__dirname, '../.env.test');
     break;
   case 'production':
-    path = resolve(__dirname, '../.env.production');
+    path = resolve(__dirname, '../.env');
     break;
   default:
     path = resolve(__dirname, '../.env.development');
